@@ -153,13 +153,22 @@ function buildBank(ci){
 function initBank(){for(let c=0;c<CH.length;c++)BANK[c]=buildBank(c)}
 function reshuffleQ(q){const ans=q.opts[q.a];const o=shuffle(q.opts);return Object.assign({},q,{opts:o,a:o.indexOf(ans)})}
 /* اختيار n سؤالاً من بنك الفصل: ربع إلى نصف الأسئلة من الكتاب بحسب العدد المتاح */
+const SEEN_KEY='math5seen';
+const loadSeen=()=>{try{return JSON.parse(localStorage.getItem(SEEN_KEY)||'{}')}catch(e){return{}}};
 function pickBank(ci,n,filter){
  const all=BANK[ci];let pool=all;
  if(filter=='book')pool=all.filter(q=>q.src=='book');else if(filter=='ext')pool=all.filter(q=>q.src=='ext');
- const bkq=shuffle(pool.filter(q=>q.src=='book')),ext=shuffle(pool.filter(q=>q.src=='ext'));
+ const SN=loadSeen();const seen=new Set(SN[ci]||[]);
+ const ord=l=>shuffle(l.filter(q=>!seen.has(q.id))).concat(shuffle(l.filter(q=>seen.has(q.id))));
+ const bkq=ord(pool.filter(q=>q.src=='book')),ext=ord(pool.filter(q=>q.src=='ext'));
  let kb=filter?bkq.length:Math.min(bkq.length,Math.round(n*bkq.length/all.length));
  let take=bkq.slice(0,kb);take=take.concat(ext.slice(0,n-take.length));
  if(take.length<n)take=take.concat(bkq.slice(kb,kb+(n-take.length)));
- return shuffle(take).slice(0,n).map(reshuffleQ);
+ take=shuffle(take).slice(0,n);
+ /* تسجيل ما ظهر: عند استنفاد المجموعة نبدأ دورة جديدة بالأسئلة الأخيرة فقط */
+ take.forEach(q=>seen.add(q.id));
+ if(pool.every(q=>seen.has(q.id)))seen.clear(),take.forEach(q=>seen.add(q.id));
+ SN[ci]=[...seen];try{localStorage.setItem(SEEN_KEY,JSON.stringify(SN))}catch(e){}
+ return take.map(reshuffleQ);
 }
 initBank();
