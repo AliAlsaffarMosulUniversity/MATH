@@ -144,3 +144,47 @@ combos:{t:'القائمة المنظمة',ic:'👕',d:'كم زياً مختلف�
 };
 /* ربط الدروس بالمختبرات */
 const LABMAP={'0.0':'place','0.1':'place','0.2':'round','0.3':'compare','1.0':'calc','1.1':'round','1.2':'calc','1.3':'calc','2.0':'times10','2.1':'mult','2.2':'mult','2.3':'round','3.0':'divide','3.1':'divide','3.2':'divide','3.3':'divide','3.4':'divide','4.0':'decimal','4.1':'compare','4.2':'round','4.3':'decimal','4.4':'numpattern','4.5':'compare','5.0':'fracadd','5.1':'fracadd','5.2':'calc','5.3':'fracmul','5.4':'fraction','5.5':'fraction','6.0':'primes','6.1':'factors','6.2':'squares','6.3':'squares','6.4':'gcdlcm','6.5':'primes','7.0':'lines','7.1':'tri','7.2':'angle','7.3':'numpattern','7.4':'numpattern','8.0':'angle','8.1':'tri','8.2':'triarea','8.3':'convert','8.4':'clock','8.5':'triarea','9.0':'dots','9.1':'dots','9.2':'combos'};
+
+/* ====== رسوم توضيحية للمراتب ====== */
+const PCOL=['#4c3fd6','#17a361','#e8590c','#d6336c'];
+const PNAME=['الآحاد','الآلاف','الملايين','المليارات'];
+const SHORT=['آحاد','عشرات','مئات','آلاف','عشرات الآلاف','مئات الآلاف','ملايين','عشرات الملايين','مئات الملايين','مليارات'];
+/* سلّم المراتب: كل مرتبة تساوي عشرة أمثال التي قبلها */
+function ladderHTML(n=7){let h='<div class="ladder"><div class="lrow">';
+ for(let p=n-1;p>=0;p--){const c=PCOL[Math.floor(p/3)];h+=`<div class="lcol"><div class="lval">${fmt(Math.pow(10,p))}</div><div class="lbar" style="height:${22+p*17}px;background:${c}"></div><div class="lnm">${SHORT[p]}</div></div>`;if(p>0)h+='<div class="larr">‹<small>÷١٠</small></div>'}
+ return h+'</div><div class="sm" style="text-align:center">كل مرتبة = عشرة أمثال المرتبة التي على يمينها (×١٠) 👉</div></div>'}
+/* جدول المراتب والفترات */
+function pvChartHTML(n){const t=String(Math.floor(n));const np=Math.max(3,Math.ceil(t.length/3));const s=t.padStart(np*3,'0');const L=s.length;let h='<div class="pvc">';
+ for(let g=np-1;g>=0;g--){const c=PCOL[g];h+=`<div class="pp" style="--c:${c}"><div class="ph">${PNAME[g]}</div><div class="pr">`;
+  for(let k=2;k>=0;k--){const p=g*3+k,i=L-1-p,d=s[i];const lead=i<L-t.length;h+=`<button class="pcell${lead?' lead':''}" data-p="${p}" data-d="${d}"><small>${['آحاد','عشرات','مئات'][k]}</small><b>${lead?'':ar(d)}</b></button>`}
+  h+='</div></div>'}
+ return h+'</div><div class="pinfo out" id="pinfo">اضغط على أي رقم لتعرف مرتبته وقيمته 👆</div>'}
+function pvChartBind(el){el.querySelectorAll('.pcell').forEach(b=>b.onclick=()=>{if(b.classList.contains('lead'))return;el.querySelectorAll('.pcell').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');const p=+b.dataset.p,d=+b.dataset.d;const v=d*Math.pow(10,p);
+ el.querySelector('#pinfo').innerHTML=`الرقم <b>${ar(d)}</b> في مرتبة <b>${PL[p]}</b><br><span class="big">قيمته = ${ar(d)} × ${fmt(Math.pow(10,p))} = ${fmt(v)}</span>`;try{sfx.tap()}catch(e){}})}
+/* رسم المراتب العشرية */
+function decChartHTML(str){let [i,f]=String(str).split('.');i=(i||'0').slice(-2).padStart(2,'0');f=(f||'').padEnd(3,'0').slice(0,3);
+ const hd=['عشرات','آحاد','','أجزاء من عشرة','أجزاء من مئة','أجزاء من ألف'],cols=['#4c3fd6','#4c3fd6','','#e8590c','#d6336c','#a24dff'];const ds=[i[0],i[1],'.',f[0],f[1],f[2]];
+ let h='<div class="pvc dec">';ds.forEach((d,k)=>{if(k==2)h+='<div class="dpoint"><b>٫</b><small>الفاصلة</small></div>';else h+=`<button class="pcell dcell" data-k="${k}" data-d="${d}" style="--c:${cols[k]}"><small>${hd[k]}</small><b>${ar(d)}</b></button>`});
+ return h+'</div><div class="pinfo out" id="pinfo">اضغط على أي رقم لتعرف مرتبته وقيمته 👆</div>'}
+function decChartBind(el){const V=[10,1,0,.1,.01,.001],N=['عشرات','آحاد','','أجزاء من عشرة','أجزاء من مئة','أجزاء من ألف'],FR=['','','','١٠/١','١٠٠/١','١٠٠٠/١'];
+ el.querySelectorAll('.dcell').forEach(b=>b.onclick=()=>{el.querySelectorAll('.dcell').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');const k=+b.dataset.k,d=+b.dataset.d;const v=d*V[k];const dec=k>=3?k-2:0;
+  el.querySelector('#pinfo').innerHTML=`الرقم <b>${ar(d)}</b> في مرتبة <b>${N[k]}</b><br><span class="big">قيمته = ${k>=3?fmtFixed(v,dec):ar(v)}</span>${k>=3?`<div class="sm">${ar(d)} من ${['عشرة','مئة','ألف'][k-3]} أجزاء</div>`:''}`;try{sfx.tap()}catch(e){}})}
+/* شرائح الكسور العشرية: ١ مقسوم إلى ١٠ ثم ١٠٠ */
+function decStripsHTML(){const mk=(n,on,c)=>`<div class="strip" style="grid-template-columns:repeat(${n},1fr)">${Array.from({length:n},(_,i)=>`<i style="${i<on?'background:'+c:''}"></i>`).join('')}</div>`;
+ return `<div class="strips"><div><b>١</b> الواحد كامل</div>${mk(1,1,'#4c3fd6')}<div><b>٠٫١</b> جزء من عشرة (١ ÷ ١٠)</div>${mk(10,1,'#e8590c')}<div><b>٠٫٠١</b> جزء من مئة (٠٫١ ÷ ١٠)</div>${mk(100,1,'#d6336c')}<div><b>٠٫٠٠١</b> جزء من ألف</div><div class="strip" style="grid-template-columns:repeat(100,1fr)"><i style="background:#a24dff;grid-column:1/2;width:100%"></i></div><div class="sm">كل مرتبة إلى اليمين أصغر بعشر مرات 👉</div></div>`}
+
+/* مختبر: العدّادات والتجميع (١٠ آحاد = عشرة واحدة) */
+LABS.blocks={t:'مكعبات المراتب',ic:'🧱',d:'أضف عدّادات في كل مرتبة وشاهد كيف تتجمّع كل ١٠ إلى مرتبة أعلى',render(el){
+ const NP=7,c=Array(NP).fill(0);const cols=p=>PCOL[Math.floor(p/3)];const shade=p=>['','','','',''].length&&`hsl(${[250,230,205,150,125,25,350][p]},70%,55%)`;
+ el.innerHTML=`<div class="lab"><div class="sm" style="text-align:center">اضغط ＋ لإضافة عدّاد. عند الوصول إلى ١٠ يتحوّل إلى عدّاد واحد في المرتبة التالية ✨</div><div class="blk" id="bk"></div><div class="out" id="o"></div><div class="row c"><button class="btn ghost" id="r">↺ ابدأ من جديد</button><button class="btn ghost" id="rn">🎲 عدد عشوائي</button></div></div>`;
+ let msg='';const draw=()=>{let h='';for(let p=NP-1;p>=0;p--){const k=c[p];h+=`<div class="bcol"><div class="bnm">${SHORT[p]}</div><button class="bpm" data-p="${p}" data-s="1" aria-label="زيادة">＋</button><div class="btk" style="--c:${shade(p)}">${Array.from({length:k},()=>'<i></i>').join('')}</div><button class="bpm m" data-p="${p}" data-s="-1" aria-label="نقصان">−</button><div class="bdg">${ar(k)}</div></div>`}
+  el.querySelector('#bk').innerHTML=h;let n=0;for(let p=0;p<NP;p++)n+=c[p]*Math.pow(10,p);el.querySelector('#o').innerHTML=`<div class="big">${fmt(n)}</div>${msg?`<div class="sm" style="color:var(--ok)">${msg}</div>`:''}<div class="sm" dir="ltr">${c.map((x,p)=>x?`${ar(x)}×${fmt(Math.pow(10,p))}`:'').filter(Boolean).reverse().join(' + ')||'٠'}</div>`;
+  el.querySelectorAll('.bpm').forEach(b=>b.onclick=()=>{const p=+b.dataset.p,s=+b.dataset.s;msg='';if(s>0){c[p]++;if(c[p]>=10){c[p]=0;if(p+1<NP){c[p+1]++;msg=`🎉 ١٠ ${SHORT[p]} = ١ ${SHORT[p+1]}`;try{sfx.ok()}catch(e){}}else c[p]=9}else try{sfx.tap()}catch(e){}}else if(c[p]>0)c[p]--;draw()})};
+ el.querySelector('#r').onclick=()=>{c.fill(0);msg='';draw()};el.querySelector('#rn').onclick=()=>{for(let p=0;p<NP;p++)c[p]=R(0,9);msg='';draw()};draw()}};
+LABS.pvchart={t:'جدول المراتب والفترات',ic:'📊',d:'اكتب عدداً وشاهده في جدول المراتب، واضغط أي رقم',render(el){
+ el.innerHTML=`<div class="lab"><input type="text" id="n" inputmode="numeric" value="3482615970" maxlength="12"><div id="c"></div></div>`;
+ const f=()=>{const n=Math.floor(num(Q(el,'#n').value))||0;Q(el,'#c').innerHTML=pvChartHTML(n);pvChartBind(el)};Q(el,'#n').addEventListener('input',f);f()}};
+LABS.decplaces={t:'مراتب الكسر العشري',ic:'🔟',d:'اكتب عدداً عشرياً وشاهد مراتبه بعد الفاصلة',render(el){
+ el.innerHTML=`<div class="lab"><input type="text" id="n" inputmode="decimal" value="23.456" maxlength="7"><div id="c"></div>${decStripsHTML()}</div>`;
+ const f=()=>{const v=String(Q(el,'#n').value).replace(/[٠-٩]/g,d=>EAST.indexOf(d)).replace('٫','.');Q(el,'#c').innerHTML=decChartHTML(/^\d*\.?\d*$/.test(v)&&v?v:'0');decChartBind(el)};Q(el,'#n').addEventListener('input',f);f()}};
+Object.assign(LABMAP,{'0.0':'blocks','0.1':'pvchart','4.0':'decplaces','4.3':'decplaces'});

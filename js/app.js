@@ -136,18 +136,22 @@ function testSheet(ci){let n=20,f='all';const bkN=BANK[ci].filter(q=>q.src=='boo
  sh.querySelectorAll('#cn button').forEach(b=>b.onclick=()=>{n=+b.dataset.n;upd()});sh.querySelectorAll('#cf button').forEach(b=>b.onclick=()=>{f=b.dataset.f;sh.querySelectorAll('#cf button').forEach(x=>x.classList.toggle('on',x==b));upd()});
  sh.querySelector('#st').onclick=()=>{close();go(`#/test/${ci}/${n}/${f}`)}})}
 
+/* رسوم توضيحية للمراتب */
+function illHTML(ci,li){if(ci==0)return `<div class="ill"><h4>🪜 سلّم المراتب</h4>${ladderHTML(7)}<h4>📊 جدول المراتب والفترات</h4><div id="ill1">${pvChartHTML(li==0?3482615970:li==1?45230000:36749218)}</div></div>`;
+ if(ci==4&&li<=3)return `<div class="ill"><h4>🔟 مراتب الكسر العشري</h4><div id="ill1">${decChartHTML(['3.472','0.65','12.508','7.049'][li])}</div>${decStripsHTML()}</div>`;return ''}
+function illBind(el,ci,li){const b=el.querySelector('#ill1');if(!b)return;ci==0?pvChartBind(b):decChartBind(b)}
 /* ---------- الدرس ---------- */
 route(/^\/les\/(\d+)\/(\d+)\/(\w+)$/,(ci,li,tab)=>{ci=+ci;li=+li;const c=CH[ci],l=c.ls[li];S.last={c:ci,l:li};save();
  const tabs=[['learn','📖 أتعلّم'],['try','🧪 جرّب'],['book','📕 الكتاب'],['quiz','✏️ تدرّب']];const lab=LABMAP[ci+'.'+li];
  let body='';
- if(tab=='learn')body=`<div class="card"><h3>${l.t}</h3><p>${l.intro}</p>${ci==0&&li==1?pvTable([4,3,2,5,0,0,0,0,0]):''}<ul class="pts">${l.pts.map(p=>`<li>${p}</li>`).join('')}</ul><div class="ex"><b>مثال:</b> ${l.ex.q}<div class="reveal" id="rv"><b>الحل:</b> ${l.ex.s}</div><button class="btn gold" id="rb" style="margin-top:8px;padding:6px 14px">أظهر الحل 👀</button></div></div><div class="row"><button class="btn block acc" data-go="#/les/${ci}/${li}/try" style="flex:1">🧪 جرّب بنفسك</button><button class="btn block" data-go="#/quiz/${ci}/${li}/5" style="flex:1">✏️ تدرّب</button></div>`;
+ if(tab=='learn')body=`<div class="card"><h3>${l.t}</h3><p>${l.intro}</p>${illHTML(ci,li)}<ul class="pts">${l.pts.map(p=>`<li>${p}</li>`).join('')}</ul><div class="ex"><b>مثال:</b> ${l.ex.q}<div class="reveal" id="rv"><b>الحل:</b> ${l.ex.s}</div><button class="btn gold" id="rb" style="margin-top:8px;padding:6px 14px">أظهر الحل 👀</button></div></div><div class="row"><button class="btn block acc" data-go="#/les/${ci}/${li}/try" style="flex:1">🧪 جرّب بنفسك</button><button class="btn block" data-go="#/quiz/${ci}/${li}/5" style="flex:1">✏️ تدرّب</button></div>`;
  else if(tab=='try')body=`<div class="card" id="lab"></div>`;
  else if(tab=='book'){const [a,b]=bookRange(ci,li);body=`<div class="bookv"><div class="scr" id="scr"><img id="pgimg" src="${pgSrc(a)}" alt="صفحة من الكتاب"></div><div class="nv"><button class="btn ghost" id="nx">‹ التالية</button><b id="pn">صفحة ${ar(a)}</b><button class="btn ghost" id="pv">السابقة ›</button></div><p class="sm">اضغط على الصفحة للتكبير • صفحات الدرس ${ar(a)}–${ar(b)}</p></div>`}
  else body=`<div class="card"><h3>✏️ تدريب الدرس</h3><p class="sm">أسئلة جديدة تتغير أرقامها كل مرة. اختر عدد الأسئلة:</p><div class="grid3">${[5,10,15].map(n=>`<button class="btn" data-go="#/quiz/${ci}/${li}/${n}">${ar(n)} أسئلة</button>`).join('')}</div></div><div class="card"><h3>⭐ نجومك: ${starsHtml(starsOf(ci,li))}</h3><p class="sm">احصل على ٩٠٪ أو أكثر للحصول على ٣ نجوم.</p></div>`;
  const nx=CH[ci].ls[li+1]?`#/les/${ci}/${li+1}/learn`:null;
  return{title:l.t,sub:`الفصل ${ar(ci+1)} • الدرس ${ar(li+1)}`,back:`#/ch/${ci}`,tab:'lessons',html:`<div class="tabs">${tabs.map(([k,n])=>`<a href="#/les/${ci}/${li}/${k}" class="${tab==k?'on':''}">${n}</a>`).join('')}</div>${body}${tab=='learn'&&nx?`<button class="btn ghost block" data-go="${nx}">الدرس التالي ›</button>`:''}`,
  mount(el){el.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));
-  const rb=el.querySelector('#rb');if(rb)rb.onclick=()=>{el.querySelector('#rv').classList.add('show');rb.remove();sfx.tap()};
+  illBind(el,ci,li);const rb=el.querySelector('#rb');if(rb)rb.onclick=()=>{el.querySelector('#rv').classList.add('show');rb.remove();sfx.tap()};
   if(tab=='try'){const box=el.querySelector('#lab');if(lab){box.innerHTML=`<h3>${LABS[lab].ic} ${LABS[lab].t}</h3><p class="sm">${LABS[lab].d}</p><div id="lb"></div>`;LABS[lab].render(box.querySelector('#lb'))}else box.innerHTML='<p>لا يوجد مختبر لهذا الدرس.</p>'}
   if(tab=='book'){const [a,b]=bookRange(ci,li);let p=a;const img=el.querySelector('#pgimg');const upd=()=>{img.src=pgSrc(p);img.classList.remove('z');el.querySelector('#pn').textContent='صفحة '+ar(p);el.querySelector('#scr').scrollTop=0};img.onclick=()=>img.classList.toggle('z');
    el.querySelector('#nx').onclick=()=>{if(p<b){p++;upd()}};el.querySelector('#pv').onclick=()=>{if(p>a){p--;upd()}}}}}});
