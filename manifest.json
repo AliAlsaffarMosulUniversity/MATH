@@ -1,0 +1,16 @@
+{
+  "name": "رياضيات الخامس الابتدائي",
+  "short_name": "رياضيات ٥",
+  "description": "ملخصات وتدريبات منهج الرياضيات للصف الخامس الابتدائي - علي الصفار .. دعم لبراعم العراق",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f1f6ff",
+  "theme_color": "#1e6fd9",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}
