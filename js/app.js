@@ -110,6 +110,7 @@ route(/^\/home$/,()=>{const last=S.last&&CH[S.last.c]&&CH[S.last.c].ls[S.last.l]
   <div class="lvl"><div class="row"><span>⚡ ${ar(S.xp)} نقطة خبرة</span><span>التالي: ${ar(lvl()*150)}</span></div><div class="bar"><i style="width:${lvPct()}%"></i></div></div>
   <div class="stats"><div><b>${ar(totalStars())}</b>نجمة</div><div><b>🔥 ${ar(S.streak.last==today()||S.streak.last==new Date(Date.now()-864e5).toISOString().slice(0,10)?S.streak.n:0)}</b>أيام متتالية</div><div><b>${ar(Object.keys(S.badges).filter(k=>BADGES.some(b=>b.id==k)).length)}</b>وسام</div></div></div>
  <button class="cont" data-go="#/les/${last.c}/${last.l}/learn"><div class="ic" style="background:${lc.col}">${lc.ic}</div><div class="tx"><span class="sm">تابع من حيث توقفت</span><b>${ll.t}</b><span class="sm">الفصل ${ar(last.c+1)}: ${lc.t}</span></div><span style="font-size:1.6rem">›</span></button>
+${(()=>{const r=resLoad();return r&&r.i<r.items.length?`<button class="cont" data-go="${r.key}" style="border:2px solid var(--gold,#ffb81f)"><div class="ic" style="background:#ffb81f">📝</div><div class="tx"><span class="sm">اختبار غير مكتمل</span><b>${r.title}</b><span class="sm">أجبت ${ar(r.i)} من ${ar(r.items.length)} • ✅ ${ar(r.score)} ❌ ${ar(r.wrong.length)}</span></div><span style="font-size:1.6rem">›</span></button>`:''})()}
  <button class="daily ${done?'done':''}" data-go="#/daily"><div class="em">${done?'✅':'☀️'}</div><div><h3>تحدي اليوم</h3><p>${done?'أحسنت! عُد غداً لتحدٍّ جديد':'٥ أسئلة من فصول مختلفة لتحافظ على سلسلتك 🔥'}</p></div><span class="go">${done?'تدرّب':'ابدأ'}</span></button>
  <div class="tiles">
   <button class="tile" data-go="#/games" style="background:linear-gradient(135deg,#ff8a3d,#ff5d8f)" data-bg="🎮"><span class="em">🎮</span><b>ألعاب</b><span>٤ ألعاب ممتعة</span></button>
@@ -153,27 +154,33 @@ route(/^\/les\/(\d+)\/(\d+)\/(\w+)$/,(ci,li,tab)=>{ci=+ci;li=+li;const c=CH[ci],
  mount(el){el.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));
   illBind(el,ci,li);const rb=el.querySelector('#rb');if(rb)rb.onclick=()=>{el.querySelector('#rv').classList.add('show');rb.remove();sfx.tap()};
   if(tab=='try'){const box=el.querySelector('#lab');if(lab){box.innerHTML=`<h3>${LABS[lab].ic} ${LABS[lab].t}</h3><p class="sm">${LABS[lab].d}</p><div id="lb"></div>`;LABS[lab].render(box.querySelector('#lb'))}else box.innerHTML='<p>لا يوجد مختبر لهذا الدرس.</p>'}
-  if(tab=='book'){const [a,b]=bookRange(ci,li);let p=a;const img=el.querySelector('#pgimg');const upd=()=>{img.src=pgSrc(p);img.classList.remove('z');el.querySelector('#pn').textContent='صفحة '+ar(p);el.querySelector('#scr').scrollTop=0};img.onclick=()=>img.classList.toggle('z');
-   el.querySelector('#nx').onclick=()=>{if(p<b){p++;upd()}};el.querySelector('#pv').onclick=()=>{if(p>a){p--;upd()}}}}}});
+  if(tab=='book'){const [a,b]=bookRange(ci,li);S.pg=S.pg||{};let p=Math.min(b,Math.max(a,S.pg[ci+'_'+li]||a));const img=el.querySelector('#pgimg');const upd=()=>{S.pg[ci+'_'+li]=p;save();img.src=pgSrc(p);img.classList.remove('z');el.querySelector('#pn').textContent='صفحة '+ar(p);el.querySelector('#scr').scrollTop=0};img.onclick=()=>img.classList.toggle('z');
+   upd();el.querySelector('#nx').onclick=()=>{if(p<b){p++;upd()}};el.querySelector('#pv').onclick=()=>{if(p>a){p--;upd()}}}}}});
 
 /* ---------- الاختبار ---------- */
+const RK='math5resume';
+const resLoad=()=>{try{return JSON.parse(localStorage.getItem(RK)||'null')}catch(e){return null}};
+const resSave=o=>{try{localStorage.setItem(RK,JSON.stringify(o))}catch(e){}};
+const resClear=()=>{try{localStorage.removeItem(RK)}catch(e){}};
 function quizScreen(cfg){return{title:cfg.title,sub:cfg.sub||'',back:cfg.back,immersive:true,tab:cfg.tab||'lessons',html:'<div class="qwrap" id="qw"></div>',mount(el){
- const items=cfg.items,N=items.length;let i=0,score=0,combo=0,xp=0,locked=false;const wrong=[];const W=el.querySelector('#qw');
+ const W=el.querySelector('#qw');const sv0=resLoad();const can=!!(sv0&&sv0.key==location.hash&&sv0.i>0&&sv0.i<sv0.items.length);
+ const run=sv=>{const items=sv?sv.items:cfg.items,N=items.length;let i=sv?sv.i:0,score=sv?sv.score:0,combo=sv?sv.combo:0,xp=sv?sv.xp:0,locked=false;const wrong=sv?sv.wrong.map(k=>items[k]):[];
  const draw=()=>{const q=items[i];locked=false;W.innerHTML=`<div class="qtop"><button class="x" id="qx" aria-label="خروج">✕</button><div class="bar"><i style="width:${i/N*100}%"></i></div><b>${ar(i+1)}/${ar(N)}</b></div><div class="qinfo"><span>${srcTag(q)}</span><span class="cnt"><b class="c-ok" id="cok">✅ ${ar(score)}</b><b class="c-no" id="cno">❌ ${ar(wrong.length)}</b></span><span class="combo">${combo>=2?'🔥 '+ar(combo)+' متتالية':''}</span></div><div class="qcard"><div class="q">${q.q}</div><div class="opts">${q.opts.map((o,k)=>`<button class="opt" data-k="${k}">${o}</button>`).join('')}</div><div id="fb"></div></div>`;
-  W.querySelector('#qx').onclick=()=>{if(i==0||confirm('هل تريد الخروج من الاختبار؟'))go(cfg.back)};
+  W.querySelector('#qx').onclick=()=>{if(i==0||confirm('سيُحفظ تقدّمك لتكمل لاحقاً. هل تريد الخروج؟'))go(cfg.back)};
   W.querySelectorAll('.opt').forEach(b=>b.onclick=()=>pickA(b,q))};
  const pickA=(b,q)=>{if(locked)return;locked=true;const k=+b.dataset.k,ok=k==q.a;S.answered++;
   W.querySelectorAll('.opt').forEach((x,m)=>{if(m==q.a)x.classList.add('ok');else if(m==k)x.classList.add('no')});
   if(ok){score++;combo++;S.correct++;S.bestCombo=Math.max(S.bestCombo,combo);const g=10+(combo>=3?5:0);xp+=g;floatXP('+'+ar(g));sfx.ok();vib(15);if(q.id){const m=S.mastered[cfg.ci]||(S.mastered[cfg.ci]=[]);if(!m.includes(q.id))m.push(q.id)}}else{combo=0;wrong.push(q);sfx.no();vib([60,40,60])}
-  W.querySelector('#cok').textContent='✅ '+ar(score);W.querySelector('#cno').textContent='❌ '+ar(wrong.length);(ok?W.querySelector('#cok'):W.querySelector('#cno')).classList.add('bump');
+  resSave({key:location.hash,title:cfg.title,items,i:i+1,score,combo,xp,wrong:wrong.map(w=>items.indexOf(w)),N});W.querySelector('#cok').textContent='✅ '+ar(score);W.querySelector('#cno').textContent='❌ '+ar(wrong.length);(ok?W.querySelector('#cok'):W.querySelector('#cno')).classList.add('bump');
   W.querySelector('#fb').innerHTML=`<div class="fb ${ok?'ok':'no'}">${ok?pick(['أحسنت! 🌟','ممتاز! 👏','رائع! 🎉','إجابة صحيحة! ✅']):'الإجابة الصحيحة: <b>'+q.opts[q.a]+'</b>'}${q.why?'<br>'+q.why:''}</div><button class="btn block" id="nxt" style="margin-top:12px">${i+1<N?'السؤال التالي ›':'النتيجة 🏁'}</button>`;
   W.querySelector('#nxt').onclick=()=>{i++;i<N?draw():finish()};setTimeout(()=>{const n=W.querySelector('#nxt');n&&n.scrollIntoView({block:'nearest',behavior:'smooth'})},60);save()};
- const finish=()=>{const pct=score/N,st=pct>=.9?3:pct>=.7?2:pct>=.4?1:0;touchStreak();const bonus=st*10;xp+=bonus;
+ const finish=()=>{resClear();const pct=score/N,st=pct>=.9?3:pct>=.7?2:pct>=.4?1:0;touchStreak();const bonus=st*10;xp+=bonus;
   const info=cfg.onDone?cfg.onDone({score,total:N,st,pct})||{}:{};save();addXP(xp);if(st==3){confetti();sfx.win()}
   W.innerHTML=`<div class="card res"><h2>${st==3?'ممتاز جداً! 🏅':st==2?'عمل رائع! 👏':st==1?'جيد، تابع التدريب 💪':'حاول مرة ثانية 🌱'}</h2><div class="big">${st?'⭐'.repeat(st):'☆'}</div><div class="rstat"><div class="ok"><b>${ar(score)}</b>✅ صحيحة</div><div class="no"><b>${ar(wrong.length)}</b>❌ خاطئة</div><div><b>${ar(Math.round(pct*100))}٪</b>النسبة</div></div><p class="sm">من مجموع ${ar(N)} سؤالاً</p><p>⚡ حصلت على <b>${ar(xp)}</b> نقطة خبرة</p>${info.note?`<p class="sm">${info.note}</p>`:''}<div class="row c"><button class="btn" id="again">🔁 إعادة</button>${cfg.next?`<button class="btn ok" id="nx2">التالي ›</button>`:''}<button class="btn ghost" id="bk">رجوع</button></div></div>
   ${wrong.length?`<div class="card"><h3>📌 راجع أخطاءك (${ar(wrong.length)})</h3>${wrong.map(q=>`<div class="wrong">${q.q}<div>الصحيح: <b>${q.opts[q.a]}</b></div></div>`).join('')}</div>`:'<div class="card res">🎯 بلا أخطاء!</div>'}`;
   W.querySelector('#again').onclick=()=>render();const n2=W.querySelector('#nx2');if(n2)n2.onclick=()=>go(cfg.next);W.querySelector('#bk').onclick=()=>go(cfg.back);checkBadges();upTop()};
- draw()}}}
+ draw()};
+ if(can){W.innerHTML=`<div class="card res"><h2>📌 لديك اختبار غير مكتمل</h2><p>أجبت عن <b>${ar(sv0.i)}</b> من <b>${ar(sv0.items.length)}</b> سؤالاً</p><div class="rstat"><div class="ok"><b>${ar(sv0.score)}</b>✅ صحيحة</div><div class="no"><b>${ar(sv0.wrong.length)}</b>❌ خاطئة</div></div><div class="row c"><button class="btn ok" id="rsm">▶ متابعة من حيث توقفت</button><button class="btn ghost" id="rst">🔁 البدء من جديد</button></div></div>`;W.querySelector('#rsm').onclick=()=>run(sv0);W.querySelector('#rst').onclick=()=>{resClear();run(null)}}else run(null)}}}
 route(/^\/quiz\/(\d+)\/(\d+)\/(\d+)$/,(ci,li,n)=>{ci=+ci;li=+li;n=+n;const l=CH[ci].ls[li];const items=[],seen=new Set();let g=0;while(items.length<n&&g<300){g++;let q;try{q=l.gen()}catch(e){continue}if(!q||seen.has(q.q))continue;seen.add(q.q);items.push(q)}
  return quizScreen({title:l.t,sub:`تدريب • ${ar(n)} أسئلة`,back:`#/les/${ci}/${li}/learn`,items,ci,next:CH[ci].ls[li+1]?`#/les/${ci}/${li+1}/learn`:null,onDone:r=>{const k=starKey(ci,li);if(r.st>(S.stars[k]||0)){S.stars[k]=r.st;return{note:'🌟 رقمت نجومك في هذا الدرس!'}}}})});
 route(/^\/test\/(\d+)\/(\d+)\/(\w+)$/,(ci,n,f)=>{ci=+ci;n=+n;const items=pickBank(ci,n,f=='all'?null:f);return quizScreen({title:`اختبار الفصل ${ar(ci+1)}`,sub:`${CH[ci].t} • ${ar(items.length)} سؤالاً`,back:`#/ch/${ci}`,items,ci,onDone:r=>{const k=ci+'_'+n;if(r.pct>(S.testBest[k]||0))S.testBest[k]=r.pct;return{note:`🧠 أتقنت ${ar(mastered(ci))} من ٥٠ سؤالاً في هذا الفصل`}}})});
